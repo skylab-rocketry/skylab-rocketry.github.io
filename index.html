@@ -1,9 +1,353 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
     <title>Skylab Rocketry</title>
+    <meta
+      name="description"
+      content="Skylab Rocketry is a group of amateurs who love to build and launch model rockets."
+    />
+    <meta name="theme-color" content="#18181b" />
+
+    <link rel="icon" type="image/png" href="assets/icons/favicon.png" />
+    <link rel="alternate icon" href="assets/icons/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="manifest.json" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Skylab Rocketry" />
+    <meta
+      property="og:description"
+      content="Amateurs who love to build and launch model rockets."
+    />
+    <meta property="og:image" content="assets/icons/1200x630.jpg" />
+    <meta property="og:url" content="https://skylab.runs-on.dev/" />
+
+    <link rel="preload" href="assets/fonts/Inter-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="assets/fonts/InterDisplay-Medium.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="stylesheet" href="assets/css/style.css" />
   </head>
-  <body>
-    <h1 style="width: 100%; text-align:  center">Acuna matata</h1>
+
+  <body id="top">
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <!-- Header -->
+    <header class="site-header" data-header>
+      <div class="container header-inner">
+        <a class="brand" href="#top" aria-label="Skylab Rocketry — Home">
+          <img src="assets/logos/full-white.png" alt="Skylab Rocketry" height="40" />
+        </a>
+
+        <nav class="main-nav" aria-label="Main">
+          <a href="#top">Home</a>
+          <a href="#about">About</a>
+          <a href="#projects">Projects</a>
+          <a href="#launches">Launches</a>
+          <a href="#contact">Contact</a>
+        </nav>
+
+        <div class="header-actions">
+          <a class="btn" href="#contact">Get in touch</a>
+          <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav" aria-label="Open menu">
+            <span></span><span></span><span></span>
+          </button>
+        </div>
+      </div>
+
+      <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile">
+        <a href="#top">Home</a>
+        <a href="#about">About</a>
+        <a href="#projects">Projects</a>
+        <a href="#launches">Launches</a>
+        <a href="#contact">Contact</a>
+        <a class="btn btn-block" href="#contact">Get in touch</a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <!-- Hero -->
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="hero-content">
+            <h1 class="hero-title reveal">Skylab Rocketry</h1>
+            <p class="lead reveal">Amateurs who love to build and launch model rockets.</p>
+            <div class="hero-text reveal">
+              <p>
+                <strong>We are Skylab Rocketry</strong>, a group of amateurs who like
+                to build and launch model rockets.
+              </p>
+              <p>If you love rockets and space, you're in the right place.</p>
+            </div>
+            <div class="hero-actions reveal">
+              <a class="btn btn-primary" href="https://www.youtube.com/@SkylabRocketry" target="_blank" rel="noopener">
+                Watch our launches
+              </a>
+              <a class="btn" href="https://www.instagram.com/skylabrocketry/" target="_blank" rel="noopener">
+                Follow our builds
+              </a>
+            </div>
+          </div>
+
+          <figure class="hero-figure reveal">
+            <img src="assets/logos/icon-white.png" alt="" width="360" height="574" />
+          </figure>
+        </div>
+      </section>
+
+      <!-- What we do -->
+      <section class="section" id="services">
+        <div class="container">
+          <h2 class="section-title reveal">What we do</h2>
+          <div class="cards-3">
+            <article class="feature-card reveal">
+              <span class="feature-num">01</span>
+              <h3>Build model rockets</h3>
+              <p>We design and build our own model rockets, from the fins to the recovery system.</p>
+            </article>
+            <article class="feature-card reveal">
+              <span class="feature-num">02</span>
+              <h3>Launch &amp; film</h3>
+              <p>We launch them and film the flights, so you can ride along with every ascent.</p>
+            </article>
+            <article class="feature-card reveal">
+              <span class="feature-num">03</span>
+              <h3>Share the process</h3>
+              <p>We share the whole process on YouTube and Instagram, wins and failures alike.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- About -->
+      <section class="section" id="about">
+        <div class="container about-grid">
+          <div class="about-main">
+            <h2 class="section-title reveal">About us</h2>
+            <h3 class="reveal">Who we are</h3>
+            <p class="reveal">
+              Skylab Rocketry is a group of amateur rocketry enthusiasts. We build
+              model rockets, launch them, and share the results with anyone who
+              loves rockets and space.
+            </p>
+            <h3 class="reveal">Our story</h3>
+            <p class="reveal">
+              In june 2023 we founded the Space Propulsion Laboratory (SPL) as a way of
+              learning how rocketry and phisics work by working closely with it. In november
+              we had our first successful launch, the DragonFlame V, leading to much more vehicles
+              and flights in the upcoming years. In may 2026 we decided to change our 
+              name and branding to Skylab Rocketry, and today we're still chasing the same
+              objectives of 2023: science, communication and teamwork!
+            </p>
+          </div>
+
+          <aside class="about-side reveal">
+            <h3>What we do</h3>
+            <ul class="tick-list">
+              <li>Build model rockets</li>
+              <li>Launch them and film the flights</li>
+              <li>Share the process on YouTube and Instagram</li>
+            </ul>
+            <a class="btn" href="https://www.youtube.com/@SkylabRocketry" target="_blank" rel="noopener">Visit our channel</a>
+          </aside>
+        </div>
+
+        <div class="container">
+          <h2 class="section-title section-title-spaced reveal">Our approach</h2>
+          <div class="accordion reveal">
+            <details class="accordion-item">
+              <summary>
+                <span>Learning by building</span>
+                <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </summary>
+              <div class="accordion-body">
+                <p>We learn by designing, building and flying our own rockets, one launch at a time.</p>
+              </div>
+            </details>
+            <details class="accordion-item">
+              <summary>
+                <span>Safe, responsible launches</span>
+                <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </summary>
+              <div class="accordion-body">
+                <p>We follow safe launch practices and always fly responsibly, with the right recovery systems and procedures.</p>
+              </div>
+            </details>
+            <details class="accordion-item">
+              <summary>
+                <span>Sharing what we learn with the community</span>
+                <svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </summary>
+              <div class="accordion-body">
+                <p>We document our builds and launches so that anyone curious about model rocketry can follow along and learn with us.</p>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <!-- Projects -->
+      <section class="section" id="projects">
+        <div class="container">
+          <h2 class="section-title reveal">Vehicles &amp; Projects</h2>
+          <p class="section-intro reveal">
+            One card per rocket or project — specs, recovery system and status.
+          </p>
+
+          <div class="projects-grid">
+            <article class="project-card reveal" style="--grad: linear-gradient(90deg, #6366f1, #9333ea); --img: url('/assets/projects/project-01.jpg');">
+              <div class="project-media" aria-hidden="true"></div>
+              <div class="project-body">
+                <span class="badge">Vehicle</span>
+                <h3>Taipan</h3>
+                <p>Our most powerful rocket yet, with a flight computer managing most of the flight.</p>
+                <dl class="specs">
+                  <div><dt>Motor class</dt><dd>E</dd></div>
+                  <div><dt>Height / diameter</dt><dd>47cm / 3.7cm</dd></div>
+                  <div><dt>Recovery</dt><dd>Parachute</dd></div>
+                  <div><dt>Status</dt><dd>Work in progress</dd></div>
+                </dl>
+              </div>
+            </article>
+
+            <article class="project-card reveal" style="--grad: linear-gradient(90deg, #d946ef, #06b6d4); --img: url('/assets/projects/project-02.jpg');">
+              <div class="project-media" aria-hidden="true"></div>
+              <div class="project-body">
+                <span class="badge">Vehicle</span>
+                <h3>SPL x AISA</h3>
+                <p>A small rocket launched in a lake with AISA Sport.</p>
+                <dl class="specs">
+                  <div><dt>Motor class</dt><dd>A</dd></div>
+                  <div><dt>Height / diameter</dt><dd>40cm / 2.5cm</dd></div>
+                  <div><dt>Recovery</dt><dd>Water landing</dd></div>
+                  <div><dt>Status</dt><dd>Flown</dd></div>
+                </dl>
+              </div>
+            </article>
+
+            <article class="project-card reveal" style="--grad: linear-gradient(90deg, #ec4899, #eab308); --img: url('/assets/projects/project-03.jpg');">
+              <div class="project-media" aria-hidden="true"></div>
+              <div class="project-body">
+                <span class="badge">Vehicle</span>
+                <h3>Chrimstar 2025</h3>
+                <p>A rocket launched for christmas in Oratorio San Filippo Neri.</p>
+                <dl class="specs">
+                  <div><dt>Motor class</dt><dd>A</dd></div>
+                  <div><dt>Height / diameter</dt><dd>~40cm / ~3cm</dd></div>
+                  <div><dt>Recovery</dt><dd>None (ground landing from a few meters)</dd></div>
+                  <div><dt>Status</dt><dd>Flown</dd></div>
+                </dl>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Launches -->
+      <section class="section" id="launches">
+        <div class="container">
+          <h2 class="section-title reveal">Launches</h2>
+          <p class="section-intro reveal">
+            Every flight we do ends up on our YouTube channel. Watch our builds,
+            launches and (often) recoveries.
+          </p>
+
+          <div class="launches-grid">
+            <a class="video-card reveal" style="--img: url('/assets/launches/video-01.jpg');" href="https://www.youtube.com/watch?v=HfO_2xGuPwM" target="_blank" rel="noopener">
+              <span class="video-media" aria-hidden="true"></span>
+              <span class="play" aria-hidden="true"></span>
+              <span class="video-meta">
+                <strong>Kratos</strong>
+                <span>--/--/---- · Kratos · F35-0 (never launched)</span>
+              </span>
+            </a>
+            <a class="video-card reveal" style="--img: url('/assets/launches/video-02.jpg');" href="https://www.youtube.com/watch?v=xYWsfASaRNk" target="_blank" rel="noopener">
+              <span class="video-media" aria-hidden="true"></span>
+              <span class="play" aria-hidden="true"></span>
+              <span class="video-meta">
+                <strong>Zephyr</strong>
+                <span>25/10/2024 · Zephyr · A10-4</span>
+              </span>
+            </a>
+            <a class="video-card reveal" style="--img: url('/assets/launches/video-03.jpg');" href="https://www.youtube.com/watch?v=4w1vtfbLD4U&t=149s" target="_blank" rel="noopener">
+              <span class="video-media" aria-hidden="true"></span>
+              <span class="play" aria-hidden="true"></span>
+              <span class="video-meta">
+                <strong>Chrimstar 2025</strong>
+                <span>22/12/2025 · Chrimstar · A10-4</span>
+              </span>
+            </a>
+          </div>
+
+          <div class="section-cta reveal">
+            <a class="btn btn-primary" href="https://www.youtube.com/@SkylabRocketry" target="_blank" rel="noopener">See all videos</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Contact -->
+      <section class="section" id="contact">
+        <div class="container">
+          <div class="contact-panel reveal">
+            <div class="contact-copy">
+              <h2 class="section-title">Follow &amp; Contact</h2>
+              <p>
+                Want to collaborate, ask a question or join a launch? Get in touch
+                with us!
+              </p>
+              <a class="btn btn-primary" href="mailto:info@skylab.runs-on.dev">info@skylab.runs-on.dev</a>
+            </div>
+
+            <nav class="contact-links" aria-label="Social">
+              <a href="https://www.youtube.com/@SkylabRocketry" target="_blank" rel="noopener">
+                <span>YouTube</span><span aria-hidden="true">↗</span>
+              </a>
+              <a href="https://www.instagram.com/skylabrocketry/" target="_blank" rel="noopener">
+                <span>Instagram</span><span aria-hidden="true">↗</span>
+              </a>
+              <a href="mailto:info@skylab.runs-on.dev">
+                <span>Email</span><span aria-hidden="true">↗</span>
+              </a>
+            </nav>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+      <div class="container footer-grid">
+        <div class="footer-brand">
+          <a href="#top" aria-label="Back to top">
+            <img src="assets/logos/full-white.png" alt="Skylab Rocketry" height="48" />
+          </a>
+          <p>Amateurs who love to build and launch model rockets.</p>
+        </div>
+
+        <nav class="footer-nav" aria-label="Footer">
+          <div>
+            <h4>Site</h4>
+            <a href="#about">About</a>
+            <a href="#projects">Projects</a>
+            <a href="#launches">Launches</a>
+            <a href="#contact">Contact</a>
+          </div>
+          <div>
+            <h4>Follow</h4>
+            <a href="https://www.youtube.com/@SkylabRocketry" target="_blank" rel="noopener">YouTube</a>
+            <a href="https://www.instagram.com/skylabrocketry/" target="_blank" rel="noopener">Instagram</a>
+            <a href="mailto:info@skylab.runs-on.dev">Email</a>
+          </div>
+        </nav>
+      </div>
+
+      <div class="container footer-bottom">
+        <p>© <span data-year>2026</span> Skylab Rocketry</p>
+        <p class="credit">Theme inspired by blackspike (CC BY 4.0)</p>
+      </div>
+    </footer>
+
+    <script src="assets/js/main.js"></script>
   </body>
 </html>

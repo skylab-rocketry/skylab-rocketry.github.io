@@ -1,0 +1,27 @@
+{
+  "lang": "en",
+  "dir": "ltr",
+  "name": "Skylab Rocketry",
+  "description": "A group of amateurs who love to build and launch model rockets.",
+  "short_name": "Skylab Rocketry",
+  "theme_color": "#18181b",
+  "background_color": "#18181b",
+  "icons": [
+    {
+      "src": "assets/icons/192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
