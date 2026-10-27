@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>Ground Control — RocketBase</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- ============ TOP BAR ============ -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div class="brand-copy">
+        <h1>Ground Control</h1>
+        <span>RocketBase · Launch Base</span>
+      </div>
+    </div>
+
+    <div class="devices">
+      <div class="device" id="rxDevice">
+        <span class="device-dot" id="rxDot" data-state="off"></span>
+        <div class="device-copy">
+          <span class="device-name">Transceiver</span>
+          <span class="device-sub" id="rxState">Not connected</span>
+        </div>
+        <button id="connectBtn" class="btn btn-compact">Connect</button>
+      </div>
+
+      <div class="device" id="btnDevice">
+        <span class="device-dot" id="btnDot" data-state="off"></span>
+        <div class="device-copy">
+          <span class="device-name">Launch Button</span>
+          <span class="device-sub" id="btnState">Optional · off</span>
+        </div>
+        <button id="connectButtonBtn" class="btn btn-compact">Connect</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ BANNERS ============ -->
+  <div id="noSerialBanner" class="banner banner-warn hidden">
+    <strong>Web Serial not supported.</strong> Open this page in Chrome or another Chromium-based browser.
+  </div>
+
+  <div id="alertBanner" class="banner banner-alert hidden">
+    <strong>Degraded mode</strong> — <span id="alertText"></span>
+  </div>
+
+  <div id="errBanner" class="banner banner-danger hidden">
+    <strong id="errTitle">Error</strong> — <span id="errText"></span>
+  </div>
+
+  <!-- ============ MAIN ============ -->
+  <main class="grid">
+
+    <!-- Countdown -->
+    <section class="card card-countdown">
+      <div class="card-head">
+        <h2>Countdown</h2>
+        <span id="cdChip" class="chip">IDLE</span>
+      </div>
+      <div id="countdownDisplay" class="countdown" data-active="false" data-warn="false">
+        <span id="countdownValue">READY</span>
+      </div>
+      <div class="latency-row">
+        <label class="latency-label" for="latencyInput">Latency compensation</label>
+        <input id="latencyInput" class="latency-input" type="number" min="0" step="50" value="0">
+        <span class="latency-unit">ms</span>
+      </div>
+      <p class="note" id="countdownNote">Idle — no countdown in progress</p>
+    </section>
+
+    <!-- ARM -->
+    <section class="card card-arm">
+      <div class="card-head">
+        <h2>Arm</h2>
+        <span id="armChip" class="chip">OFF</span>
+      </div>
+
+      <button id="armSwitch" class="arm-switch" role="switch" aria-checked="false" disabled>
+        <span class="arm-track" aria-hidden="true"><span class="arm-thumb"></span></span>
+        <span class="arm-copy">
+          <span class="arm-title">ARM MOSFET</span>
+          <span class="arm-sub" id="armSub">Disconnected</span>
+        </span>
+      </button>
+
+      <p class="note">Separate enable for the ignition circuit. The countdown and the physical launch button are blocked while ARM is off.</p>
+    </section>
+
+    <!-- Status -->
+    <section class="card card-status">
+      <div class="card-head">
+        <h2>Flight Status</h2>
+        <span class="chip chip-ghost">LIVE</span>
+      </div>
+      <div class="led-grid">
+        <div class="led-item" id="ledFire">
+          <span class="led" data-state="off"></span>
+          <span class="led-label">FIRE</span>
+          <span class="led-text" id="txtFire">IDLE</span>
+        </div>
+        <div class="led-item" id="ledSafe">
+          <span class="led" data-state="off"></span>
+          <span class="led-label">SAFE</span>
+          <span class="led-text" id="txtSafe">UNKNOWN</span>
+        </div>
+        <div class="led-item" id="ledCtn">
+          <span class="led" data-state="off"></span>
+          <span class="led-label">CONTINUITY</span>
+          <span class="led-text" id="txtCtn">OPEN</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tilt -->
+    <section class="card card-tilt">
+      <div class="card-head">
+        <h2>Tilt</h2>
+        <span class="chip chip-ghost">BASE</span>
+      </div>
+      <div id="tiltGauge" class="gauge"></div>
+      <div class="tilt-readout">
+        <span id="tiltValue" class="tilt-value">--</span>
+        <span class="tilt-unit">deg</span>
+      </div>
+      <p class="note" id="tiltNote">Waiting for telemetry…</p>
+    </section>
+
+    <!-- Link / continuity -->
+    <section class="card card-link">
+      <div class="card-head">
+        <h2>Link</h2>
+        <span class="chip chip-ghost">USB / RF</span>
+      </div>
+      <div class="metric">
+        <span>Continuity</span>
+        <strong><span id="rcntAdc">--</span> <small>ADC</small></strong>
+      </div>
+      <div class="metric">
+        <span>Voltage</span>
+        <strong><span id="rcntVolt">--</span> <small>V</small></strong>
+      </div>
+      <div class="metric">
+        <span>Period</span>
+        <strong><span id="tmValue">--</span> <small>ms</small></strong>
+      </div>
+      <div class="metric">
+        <span>Last update</span>
+        <strong id="lastUpdate">--</strong>
+      </div>
+      <div class="metric">
+        <span>Messages</span>
+        <strong id="msgCount">0</strong>
+      </div>
+    </section>
+
+    <!-- Launch control -->
+    <section class="card card-cmd">
+      <div class="card-head">
+        <h2>Launch Control</h2>
+        <span class="chip chip-ghost">MANUAL</span>
+      </div>
+      <div class="cmd-row">
+        <input id="cdSec" class="cmd-input" type="number" min="1" step="1" value="10" placeholder="seconds">
+        <button id="startBtn" class="btn btn-start" disabled>Start countdown</button>
+      </div>
+      <button id="abortBtn" class="btn btn-abort" disabled>Abort</button>
+      <p class="note">All launch checks are performed by the launch base. The UI only sends commands and displays what the base reports.</p>
+    </section>
+
+    <!-- Physical launch button -->
+    <section class="card card-button">
+      <div class="card-head">
+        <h2>Physical Launch Button</h2>
+        <span id="btnCardChip" class="chip">OPTIONAL</span>
+      </div>
+      <p class="note">A second USB device. Pressing it sends an instant launch command. It never arms the base: ARM stays under your control.</p>
+
+      <div class="button-state">
+        <span class="device-dot" id="btnCardDot" data-state="off"></span>
+        <div class="button-state-copy">
+          <span class="button-state-title" id="btnLastTitle">No events yet</span>
+          <span class="button-state-sub" id="btnLastSub">Connect the device to enable the physical launch button.</span>
+        </div>
+      </div>
+
+      <button id="buttonConnectCard" class="btn btn-ghost" disabled>Connect device</button>
+    </section>
+
+    <!-- Log -->
+    <section class="card card-log">
+      <div class="card-head">
+        <h2>Event Log</h2>
+        <span class="chip chip-ghost" id="logChip">0</span>
+      </div>
+      <div id="logList" class="log-list"></div>
+    </section>
+
+    <!-- Legend -->
+    <section class="card card-legend">
+      <div class="card-head">
+        <h2>Reference</h2>
+        <span class="chip chip-ghost">TELEMETRY</span>
+      </div>
+      <table class="legend">
+        <tbody>
+          <tr><td><code>ARM</code></td><td>MOSFET enable, controlled only by the ARM switch. Launch is blocked while it is off.</td></tr>
+          <tr><td><code>FIRE</code></td><td>Ignition pulse. It does not change ARM: use the ARM switch to disarm.</td></tr>
+          <tr><td><code>CONTINUITY</code></td><td>Injector continuity. Required for any launch.</td></tr>
+          <tr><td><code>SAFE</code></td><td>Base says launch is permitted (tilt and internal checks).</td></tr>
+          <tr><td><code>ALR</code></td><td>Degraded mode: accelerometer unavailable, tilt checks disabled, launch still permitted.</td></tr>
+          <tr><td><code>BUTTON</code></td><td>Optional physical device. Sends an instant launch request with full validation.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
