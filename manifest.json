@@ -2,8 +2,12 @@
   "lang": "en",
   "dir": "ltr",
   "name": "Skylab Rocketry",
+  "short_name": "Skylab",
   "description": "A group of amateurs who love to build and launch model rockets.",
-  "short_name": "Skylab Rocketry",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
   "theme_color": "#18181b",
   "background_color": "#18181b",
   "icons": [

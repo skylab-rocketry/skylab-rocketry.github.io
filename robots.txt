@@ -1,0 +1,5 @@
+# https://skylab.runs-on.dev/robots.txt
+User-agent: *
+Allow: /
+
+Sitemap: https://skylab.runs-on.dev/sitemap.xml
