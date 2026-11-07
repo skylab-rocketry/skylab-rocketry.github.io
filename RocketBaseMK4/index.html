@@ -41,7 +41,7 @@
 
   <!-- ============ BANNERS ============ -->
   <div id="noSerialBanner" class="banner banner-warn hidden">
-    <strong>Web Serial not supported.</strong> Open this page in Chrome or another Chromium-based browser.
+    <strong>Web Serial is not available.</strong> <span id="noSerialText">Open this page in Chrome/Edge 89+ or Firefox 151+ (desktop) over HTTPS or localhost.</span>
   </div>
 
   <div id="alertBanner" class="banner banner-alert hidden">
@@ -213,6 +213,7 @@
           <tr><td><code>SAFE</code></td><td>Base says launch is permitted (tilt and internal checks).</td></tr>
           <tr><td><code>ALR</code></td><td>Degraded mode: accelerometer unavailable, tilt checks disabled, launch still permitted.</td></tr>
           <tr><td><code>BUTTON</code></td><td>Optional physical device. Sends an instant launch request with full validation.</td></tr>
+          <tr><td><code>BROWSER</code></td><td>Chrome/Edge 89+ or Firefox 151+ (desktop) over HTTPS or localhost. Firefox asks for a site permission add-on on the first connection.</td></tr>
         </tbody>
       </table>
     </section>

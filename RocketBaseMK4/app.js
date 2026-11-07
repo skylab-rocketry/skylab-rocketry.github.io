@@ -3,9 +3,16 @@
 /* ============================================================
  *  RocketBase Ground Control
  *
- *  Devices (Web Serial, Chrome/Chromium):
+ *  Devices (Web Serial API):
+ *    - Chrome / Edge / Opera (Chromium) 89+
+ *    - Firefox 151+ (desktop, secure context)
  *    1. RocketBase Transceiver  — telemetry + commands (filtered)
- *    2. Launch Button (optional)— physical STATUS_ON / STATUS_OFF
+ *    2. Launch Button (optional) — physical STATUS_ON / STATUS_OFF
+ *
+ *  Firefox note: the first navigator.serial.requestPort() call asks
+ *  the user to install a per-site "site permission add-on" before
+ *  showing the port picker. Both browsers implement the same standard
+ *  API, so all device access goes through the helpers below.
  *
  *  Inbound telemetry:  UPDT{json}   (also accepts RECV-prefixed lines)
  *  Outbound commands:  ARM / DISARM / FIRE / CTD<N> / ABORT
@@ -24,7 +31,7 @@ const USB_FILTERS = [{ usbVendorId: 0x2E8A, usbProductId: 0x5242 }];
 /* ---------- DOM ---------- */
 const $ = (id) => document.getElementById(id);
 const els = {
-  noSerialBanner: $('noSerialBanner'),
+  noSerialBanner: $('noSerialBanner'), noSerialText: $('noSerialText'),
   alertBanner: $('alertBanner'), alertText: $('alertText'),
   errBanner: $('errBanner'), errTitle: $('errTitle'), errText: $('errText'),
 
@@ -62,7 +69,15 @@ const ledRefs = [
 
 /* ---------- State ---------- */
 function newConn() {
-  return { port: null, writer: null, reader: null, connecting: false };
+  return {
+    port: null,
+    writer: null,
+    reader: null,
+    connecting: false,
+    closing: false,
+    loopPromise: null,
+    writeChain: Promise.resolve(),
+  };
 }
 
 const state = {
@@ -84,7 +99,84 @@ const state = {
   },
 };
 
-const supported = 'serial' in navigator;
+/* ============================================================
+ *  WEB SERIAL COMPATIBILITY LAYER
+ *
+ *  Chromium and Firefox 151+ both implement the same Web Serial
+ *  standard. The only practical differences are:
+ *    - Firefox requires a secure context (HTTPS / localhost).
+ *    - Firefox asks for a site permission add-on the first time
+ *      requestPort() is called (similar to Web MIDI).
+ *    - Firefox is desktop-only; Firefox for Android has no Web Serial.
+ *
+ *  These helpers keep every browser-specific detail in one place.
+ * ============================================================ */
+const serial = typeof navigator !== 'undefined' && navigator.serial ? navigator.serial : null;
+const serialSupported = !!serial && typeof serial.requestPort === 'function';
+const secureContextOk = typeof window.isSecureContext === 'boolean' ? window.isSecureContext : true;
+const isFirefox = /firefox|fxios/i.test(navigator.userAgent || '');
+const isFirefoxAndroid = isFirefox && /android/i.test(navigator.userAgent || '');
+
+const permissionsPolicyOk = (() => {
+  const policy = document.permissionsPolicy || document.featurePolicy;
+  if (!policy || typeof policy.allowsFeature !== 'function') return true;
+  try { return policy.allowsFeature('serial'); } catch (_) { return true; }
+})();
+
+const serialReady = serialSupported && secureContextOk && permissionsPolicyOk;
+
+/* Kept as a short alias for the render/disabled checks. */
+const supported = serialReady;
+
+function serialSupportMessage() {
+  if (!secureContextOk) {
+    return 'Web Serial requires a secure context. Open this page over HTTPS (or from localhost).';
+  }
+  if (!serialSupported) {
+    if (isFirefoxAndroid) {
+      return 'Web Serial is desktop-only in Firefox. Open this page on a desktop computer.';
+    }
+    if (isFirefox) {
+      return 'This Firefox version does not expose Web Serial. Update to Firefox 151+ on desktop.';
+    }
+    return 'This browser does not expose Web Serial. Use Chrome/Edge 89+ or Firefox 151+ (desktop).';
+  }
+  if (!permissionsPolicyOk) {
+    return 'Serial access is blocked by this page\'s Permissions-Policy. Open the page top-level or allow the "serial" feature.';
+  }
+  return '';
+}
+
+function serialErrorHint(err) {
+  const name = err && err.name ? err.name : '';
+  if (name === 'SecurityError' || name === 'NotAllowedError') {
+    return isFirefox
+      ? 'Permission denied. Firefox asks you to install a site permission add-on the first time: allow it, then press Connect again.'
+      : 'Permission denied. Allow serial access in the browser prompt, then press Connect again.';
+  }
+  if (name === 'InvalidStateError') {
+    return 'The port is already open or busy. Close any other tab/program using it and retry.';
+  }
+  if (name === 'NetworkError') {
+    return 'Could not open/read the port. Check the USB cable, close other serial monitors, and retry.';
+  }
+  if (name === 'AbortError') {
+    return 'The serial operation was aborted.';
+  }
+  return err && err.message ? err.message : String(err);
+}
+
+function safeGetInfo(port) {
+  try { return typeof port.getInfo === 'function' ? port.getInfo() : {}; } catch (_) { return {}; }
+}
+
+function hex4(n) {
+  return Number(n).toString(16).toUpperCase().padStart(4, '0');
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 /* ============================================================
  *  TILT GAUGE
@@ -164,36 +256,65 @@ function setNeedle(tiltDeg) {
 
 /* ============================================================
  *  CONNECTIONS
+ *
+ *  requestPort() MUST run in the same task as the click: Firefox
+ *  (and Chromium) require transient user activation and a promise
+ *  awaited before requestPort() would consume it.
  * ============================================================ */
 async function connectDevice(kind, showAll) {
   const conn = kind === 'rx' ? state.rx : state.btn;
-  if (conn.port || conn.connecting) return;
+  if (conn.port || conn.connecting || conn.closing) return;
 
   conn.connecting = true;
   render();
 
+  let selected = null;
   try {
-    const selected = await navigator.serial.requestPort(
+    selected = await serial.requestPort(
       kind === 'rx' && !showAll ? { filters: USB_FILTERS } : {}
     );
+
+    const info = safeGetInfo(selected);
     await selected.open({ baudRate: BAUD });
+
+    // Acquire the writer before publishing the connection: if this fails we
+    // can close the freshly opened port without leaving stale state behind.
+    const writer = kind === 'rx' ? selected.writable.getWriter() : null;
+
     conn.port = selected;
+    conn.writer = writer;
+    conn.closing = false;
+    conn.writeChain = Promise.resolve();
 
     if (kind === 'rx') {
-      conn.writer = selected.writable.getWriter();
       log('sys', 'Transceiver connected');
     } else {
       log('sys', 'Launch Button connected');
     }
 
-    readLoop(kind, selected);
+    if (info && Number.isInteger(info.usbVendorId)) {
+      log('sys', `USB device ${hex4(info.usbVendorId)}:${hex4(info.usbProductId)}`);
+    }
+
+    conn.loopPromise = readLoop(kind, selected).catch((err) => {
+      log('warn', `Connection loop stopped: ${serialErrorHint(err)}`);
+    });
   } catch (err) {
+    // If the picker succeeded but open() failed, release the port handle.
+    if (selected) {
+      try { await selected.close(); } catch (_) { /* ignore */ }
+    }
+
     if (err && err.name === 'NotFoundError') {
-      log('sys', kind === 'rx'
-        ? 'No RocketBase Transceiver selected. (Shift+Connect shows every serial port.)'
-        : 'No Launch Button selected.');
+      if (!selected) {
+        log('sys', kind === 'rx'
+          ? 'No RocketBase Transceiver selected. (Shift+Connect shows every serial port.)'
+          : 'No Launch Button selected.');
+      } else {
+        log('warn', 'The selected device disappeared before it could be opened.');
+      }
     } else {
-      log('warn', `Connect failed: ${err.message || err}`);
+      log('warn', `Connect failed (${kind === 'rx' ? 'transceiver' : 'launch button'}): ${serialErrorHint(err)}`);
     }
   } finally {
     conn.connecting = false;
@@ -204,24 +325,42 @@ async function connectDevice(kind, showAll) {
 async function disconnectDevice(kind) {
   const conn = kind === 'rx' ? state.rx : state.btn;
   const port = conn.port;
-  if (!port) return;
+  if (!port || conn.closing) return;
 
+  conn.closing = true;
   conn.port = null;
-  const writer = conn.writer;
-  conn.writer = null;
-  conn.reader = null;
 
+  const reader = conn.reader;
+  const writer = conn.writer;
+  const loop = conn.loopPromise;
+  const alreadyGone = port.connected === false;
+
+  conn.reader = null;
+  conn.writer = null;
+  conn.loopPromise = null;
+
+  // Stop the read loop before closing: Firefox rejects close() while the
+  // readable stream still has a pending read/lock.
+  try { if (reader) await reader.cancel(); } catch (_) { /* ignore */ }
   try { if (writer) await writer.releaseLock(); } catch (_) { /* ignore */ }
-  try { await port.close(); } catch (_) { /* ignore */ }
+  if (loop && reader) {
+    try { await Promise.race([loop, delay(750)]); } catch (_) { /* ignore */ }
+  }
+
+  if (!alreadyGone) {
+    try { await port.close(); } catch (err) { log('warn', `Close failed: ${serialErrorHint(err)}`); }
+  }
+
+  conn.closing = false;
 
   if (kind === 'rx') {
     resetTelemetry();
-    log('sys', 'Transceiver disconnected');
+    log('sys', alreadyGone ? 'Transceiver disconnected (device removed)' : 'Transceiver disconnected');
   } else {
     state.btnLastEvent = null;
     state.btnLastAt = 0;
     state.btnBuffer = '';
-    log('sys', 'Launch Button disconnected');
+    log('sys', alreadyGone ? 'Launch Button disconnected (device removed)' : 'Launch Button disconnected');
   }
 
   render();
@@ -230,16 +369,17 @@ async function disconnectDevice(kind) {
 async function readLoop(kind, port) {
   const conn = kind === 'rx' ? state.rx : state.btn;
   const decoder = new TextDecoder();
+  const label = kind === 'rx' ? 'Transceiver' : 'Launch Button';
 
   try {
-    while (port.readable) {
+    while (port.readable && conn.port === port && !conn.closing) {
       const reader = port.readable.getReader();
       conn.reader = reader;
 
       try {
         for (;;) {
           const { value, done } = await reader.read();
-          if (done) break;
+          if (done || conn.port !== port) break;
           const text = decoder.decode(value, { stream: true });
 
           if (kind === 'rx') {
@@ -250,17 +390,18 @@ async function readLoop(kind, port) {
             processBtnLines();
           }
         }
+      } catch (err) {
+        if (conn.port === port && !conn.closing) {
+          log('warn', `${label} read error: ${serialErrorHint(err)}`);
+        }
       } finally {
+        if (conn.reader === reader) conn.reader = null;
         try { reader.releaseLock(); } catch (_) { /* ignore */ }
       }
     }
-  } catch (err) {
-    if (conn.port === port) {
-      log('warn', `${kind === 'rx' ? 'Transceiver' : 'Launch Button'} read error: ${err.message || err}`);
-    }
+  } finally {
+    if (conn.port === port) await disconnectDevice(kind);
   }
-
-  if (conn.port === port) await disconnectDevice(kind);
 }
 
 function resetTelemetry() {
@@ -373,14 +514,14 @@ function processBtnLines() {
   }
 }
 
-function onLaunchButtonPressed() {
+async function onLaunchButtonPressed() {
   state.btnLastEvent = 'down';
   state.btnLastAt = Date.now();
 
   // Nessun controllo qui: il pulsante fisico invia solo la richiesta.
   // Tutte le verifiche (ARM, continuita', safety) le fa la base.
   log('alert', 'Physical launch button pressed');
-  if (sendCommand('FIRE\n', 'physical launch')) {
+  if (await sendCommand('FIRE\n', 'physical launch')) {
     log('tx', 'FIRE request sent — the base performs all checks');
   }
   render();
@@ -398,17 +539,33 @@ function onLaunchButtonReleased() {
  *  The UI never validates a launch. It only sends commands and
  *  displays whatever the base reports in telemetry.
  * ============================================================ */
-function sendCommand(cmd, label) {
-  if (!state.rx.port || !state.rx.writer) {
+const encoder = new TextEncoder();
+
+async function sendCommand(cmd, label) {
+  const conn = state.rx;
+  if (!conn.port || !conn.writer) {
     log('warn', `Cannot send ${label} — transceiver not connected`);
     return false;
   }
-  try {
-    state.rx.writer.write(new TextEncoder().encode(cmd));
+
+  const writer = conn.writer;
+  const bytes = encoder.encode(cmd);
+
+  // Serialize writes: Chromium and Firefox both expect a single writer
+  // to be used sequentially, and this also avoids interleaved commands.
+  const job = conn.writeChain.then(async () => {
+    if (conn.writer !== writer) throw new Error('port changed');
+    await writer.write(bytes);
     log('tx', cmd.replace(/\n$/, ''));
     return true;
+  });
+
+  conn.writeChain = job.catch(() => { /* keep the chain usable */ });
+
+  try {
+    return await job;
   } catch (err) {
-    log('warn', `Send failed: ${err.message || err}`);
+    log('warn', `Send failed: ${serialErrorHint(err)}`);
     return false;
   }
 }
@@ -416,19 +573,19 @@ function sendCommand(cmd, label) {
 function onArmToggle() {
   // ARM/DISARM pilotano direttamente il MOSFET: nessuna logica qui.
   const next = state.fields.ast !== 1;
-  sendCommand(next ? 'ARM\n' : 'DISARM\n', next ? 'ARM on' : 'ARM off');
+  void sendCommand(next ? 'ARM\n' : 'DISARM\n', next ? 'ARM on' : 'ARM off');
   render();
 }
 
 function onStart() {
   // Invia il valore cosi' com'e': la base valida il countdown.
   const raw = String(els.cdSec.value).trim();
-  sendCommand(`CTD${raw}\n`, `countdown ${raw}s`);
+  void sendCommand(`CTD${raw}\n`, `countdown ${raw}s`);
   render();
 }
 
 function onAbort() {
-  sendCommand('ABORT\n', 'abort');
+  void sendCommand('ABORT\n', 'abort');
   render();
 }
 
@@ -698,17 +855,20 @@ const savedLatency = parseInt(localStorage.getItem('rbgu.latencyMs') || '0', 10)
 state.latencyMs = Number.isFinite(savedLatency) && savedLatency >= 0 ? savedLatency : 0;
 els.latencyInput.value = state.latencyMs;
 
-if (!supported) {
+const supportProblem = serialSupportMessage();
+
+if (supportProblem) {
   els.noSerialBanner.classList.remove('hidden');
+  if (els.noSerialText) els.noSerialText.textContent = supportProblem;
   els.connectBtn.disabled = true;
   els.connectButtonBtn.disabled = true;
   els.buttonConnectCard.disabled = true;
   els.startBtn.disabled = true;
   els.abortBtn.disabled = true;
 } else {
-  if (navigator.serial.addEventListener) {
-    navigator.serial.addEventListener('connect', () => log('sys', 'A serial port became available'));
-    navigator.serial.addEventListener('disconnect', () => log('sys', 'A serial port was disconnected'));
+  if (serial && typeof serial.addEventListener === 'function') {
+    serial.addEventListener('connect', () => log('sys', 'A serial port became available'));
+    serial.addEventListener('disconnect', () => log('sys', 'A serial port was disconnected'));
   }
 }
 
@@ -733,8 +893,12 @@ els.abortBtn.addEventListener('click', onAbort);
 els.cdSec.addEventListener('keydown', (e) => { if (e.key === 'Enter') onStart(); });
 els.latencyInput.addEventListener('input', onLatencyChange);
 
-log('sys', supported
-  ? 'Ready — connect the RocketBase Transceiver. The Launch Button is optional (Shift+Connect shows all ports).'
-  : 'Web Serial API not available. Use Chrome/Chromium.');
+if (serialReady) {
+  log('sys', isFirefox
+    ? 'Ready — Firefox 151+ Web Serial. On the first connection allow the site permission add-on, then select the transceiver port.'
+    : 'Ready — connect the RocketBase Transceiver. The Launch Button is optional (Shift+Connect shows all ports).');
+} else {
+  log('warn', supportProblem || 'Web Serial API not available. Use Chrome/Edge 89+ or Firefox 151+ (desktop).');
+}
 
 render();

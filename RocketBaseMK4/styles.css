@@ -738,6 +738,9 @@ code {
   padding: 12px;
   border: 1px solid var(--border);
   scroll-behavior: smooth;
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
 }
 
 .log-list .log-empty { color: var(--faint); }
