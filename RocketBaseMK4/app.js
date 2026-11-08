@@ -266,7 +266,7 @@ async function connectDevice(kind, showAll) {
   if (conn.port || conn.connecting || conn.closing) return;
 
   conn.connecting = true;
-  render();
+  scheduleRender();
 
   let selected = null;
   try {
@@ -318,7 +318,7 @@ async function connectDevice(kind, showAll) {
     }
   } finally {
     conn.connecting = false;
-    render();
+    scheduleRender();
   }
 }
 
@@ -363,7 +363,7 @@ async function disconnectDevice(kind) {
     log('sys', alreadyGone ? 'Launch Button disconnected (device removed)' : 'Launch Button disconnected');
   }
 
-  render();
+  scheduleRender();
 }
 
 async function readLoop(kind, port) {
@@ -481,7 +481,7 @@ function handleUpdate(payload) {
     state.ctdnAnchor = null;
   }
 
-  render();
+  scheduleRender();
   log('rx', `UPDT${JSON.stringify(data)}`);
 }
 
@@ -495,7 +495,7 @@ function handleAlertLine(line) {
     log('alert', line);
   }
 
-  render();
+  scheduleRender();
 }
 
 /* ============================================================
@@ -524,14 +524,14 @@ async function onLaunchButtonPressed() {
   if (await sendCommand('FIRE\n', 'physical launch')) {
     log('tx', 'FIRE request sent — the base performs all checks');
   }
-  render();
+  scheduleRender();
 }
 
 function onLaunchButtonReleased() {
   state.btnLastEvent = 'up';
   state.btnLastAt = Date.now();
   log('sys', 'Physical launch button released');
-  render();
+  scheduleRender();
 }
 
 /* ============================================================
@@ -574,19 +574,19 @@ function onArmToggle() {
   // ARM/DISARM pilotano direttamente il MOSFET: nessuna logica qui.
   const next = state.fields.ast !== 1;
   void sendCommand(next ? 'ARM\n' : 'DISARM\n', next ? 'ARM on' : 'ARM off');
-  render();
+  scheduleRender();
 }
 
 function onStart() {
   // Invia il valore cosi' com'e': la base valida il countdown.
   const raw = String(els.cdSec.value).trim();
   void sendCommand(`CTD${raw}\n`, `countdown ${raw}s`);
-  render();
+  scheduleRender();
 }
 
 function onAbort() {
   void sendCommand('ABORT\n', 'abort');
-  render();
+  scheduleRender();
 }
 
 /* ============================================================
@@ -636,6 +636,16 @@ function updateCountdownDisplay() {
   els.countdownNote.textContent = (rem <= 5
     ? 'T-minus — under 5 seconds!'
     : `Countdown in progress — raw ${f.ctdn}s · latency ${state.latencyMs}ms`) + degradedNote;
+}
+
+let renderScheduled = false;
+function scheduleRender() {
+  if (renderScheduled) return;
+  renderScheduled = true;
+  requestAnimationFrame(() => {
+    renderScheduled = false;
+    render();
+  });
 }
 
 function render() {
@@ -863,7 +873,7 @@ setInterval(() => {
   const nowStale = linkStale();
   if (nowStale !== _tickStale) {
     _tickStale = nowStale;
-    render();
+    scheduleRender();
   }
 }, 200);
 
@@ -920,4 +930,4 @@ if (serialReady) {
   log('warn', supportProblem || 'Web Serial API not available. Use Chrome/Edge 89+ or Firefox 151+ (desktop).');
 }
 
-render();
+scheduleRender();
