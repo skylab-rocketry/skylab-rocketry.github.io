@@ -62,9 +62,9 @@ const els = {
 };
 
 const ledRefs = [
-  { el: els.ledFire, txt: els.txtFire },   // FIRE
-  { el: els.ledSafe, txt: els.txtSafe },   // SAFE
-  { el: els.ledCtn, txt: els.txtCtn },     // CONTINUITY
+  { el: els.ledFire, txt: els.txtFire, dot: els.ledFire.querySelector('.led') },   // FIRE
+  { el: els.ledSafe, txt: els.txtSafe, dot: els.ledSafe.querySelector('.led') },   // SAFE
+  { el: els.ledCtn, txt: els.txtCtn, dot: els.ledCtn.querySelector('.led') },     // CONTINUITY
 ];
 
 /* ---------- State ---------- */
@@ -598,7 +598,7 @@ function fmtNum(v, digits = 0) {
 }
 
 function setLed(ref, on, color) {
-  ref.el.querySelector('.led').dataset.state = on ? color : 'off';
+  ref.dot.dataset.state = on ? color : 'off';
 }
 
 function ctdnRemainingNow() {
@@ -843,9 +843,28 @@ function onLatencyChange() {
   }
 }
 
-/* Smooth local tick for the countdown display. */
+/* Lightweight local tick for the countdown display.
+ * Only the countdown value/notes are refreshed here; a full render
+ * is triggered when the link-stale state changes. */
+let _tickStale = linkStale();
 setInterval(() => {
-  render();
+  if (state.ctdnAnchor) {
+    const stale = linkStale();
+    updateCountdownDisplay();
+    if (stale) {
+      els.cdChip.textContent = 'NO LINK';
+      els.cdChip.className = 'chip danger';
+    } else {
+      els.cdChip.textContent = 'T-MINUS';
+      const rem = ctdnRemainingNow();
+      els.cdChip.className = 'chip' + (rem <= 5 ? ' danger' : ' ok');
+    }
+  }
+  const nowStale = linkStale();
+  if (nowStale !== _tickStale) {
+    _tickStale = nowStale;
+    render();
+  }
 }, 200);
 
 /* ============================================================
